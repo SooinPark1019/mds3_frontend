@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import NextImage from "next/image"
+import { Camera, RotateCcw } from "lucide-react"
 
 export default function LandingPage() {
   const [blurLevel, setBlurLevel] = useState(4)
@@ -16,7 +17,6 @@ export default function LandingPage() {
     img.onload = () => setBackgroundLoaded(true)
     img.src = "/20230823_185401_1.jpg"  
   }, [])
-
 
   const handleDownscale = () => {
     router.push("/downscale")
@@ -55,19 +55,28 @@ export default function LandingPage() {
       {!backgroundLoaded && <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-green-400" />}
 
       {/* Dark Overlay */}
-      <div className="absolute inset-0 bg-black/30" />
+      <div className="absolute inset-0 bg-black/40" />
 
-      {/* Chewy Dipps Image Overlay - Always Clear */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="relative z-10">
-          <NextImage
-            src="/chewy-dipps.png"
-            alt="Chewy Dipps"
-            width={400}
-            height={400}
-            className="drop-shadow-2xl"
-            priority
-          />
+      {/* Main Content */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
+        <div className="text-center mb-16">
+          <h1 className="text-6xl font-bold mb-4 drop-shadow-lg">MRS3</h1>
+          <p className="text-xl font-medium drop-shadow-md mb-2">다각형 영역 기반 이미지 압축 시스템</p>
+          <p className="text-lg opacity-90 drop-shadow-md">Multi-Region Selective Super-resolution System</p>
+        </div>
+
+        {/* Feature Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
+          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20">
+            <Camera className="h-8 w-8 mb-4 text-blue-300" />
+            <h3 className="text-xl font-semibold mb-2">이미지 압축</h3>
+            <p className="text-sm opacity-90">다각형 영역을 선택하여 스마트한 이미지 압축을 수행합니다.</p>
+          </div>
+          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20">
+            <RotateCcw className="h-8 w-8 mb-4 text-green-300" />
+            <h3 className="text-xl font-semibold mb-2">이미지 복원</h3>
+            <p className="text-sm opacity-90">AI 기반 EDSR 또는 OpenCV로 고품질 이미지 복원을 제공합니다.</p>
+          </div>
         </div>
       </div>
 
@@ -78,9 +87,10 @@ export default function LandingPage() {
           onMouseEnter={handleDownscaleHover}
           onMouseLeave={handleMouseLeave}
           size="lg"
-          className="px-8 py-4 text-lg font-semibold bg-blue-600 hover:bg-blue-700 transition-all duration-200"
+          className="px-8 py-4 text-lg font-semibold bg-blue-600 hover:bg-blue-700 transition-all duration-200 shadow-lg"
         >
-          Downscale
+          <Camera className="h-5 w-5 mr-2" />
+          이미지 압축
         </Button>
         <Button
           onClick={handleRestore}
@@ -88,9 +98,10 @@ export default function LandingPage() {
           onMouseLeave={handleMouseLeave}
           size="lg"
           variant="outline"
-          className="px-8 py-4 text-lg font-semibold bg-white/90 hover:bg-white transition-all duration-200"
+          className="px-8 py-4 text-lg font-semibold bg-white/90 hover:bg-white transition-all duration-200 shadow-lg border-2"
         >
-          Restore
+          <RotateCcw className="h-5 w-5 mr-2" />
+          이미지 복원
         </Button>
       </div>
     </div>

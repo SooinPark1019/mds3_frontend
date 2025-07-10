@@ -12,14 +12,14 @@ interface Point {
 
 interface PolygonDrawerProps {
   imageUrl: string
-  onPolygonComplete: (points: Point[]) => void
+  onPolygonComplete: (polygons: Point[][]) => void
 }
 
 export default function PolygonDrawer({ imageUrl, onPolygonComplete }: PolygonDrawerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const imageRef = useRef<HTMLImageElement>(null)
-  const [points, setPoints] = useState<Point[]>([])
-  const [isComplete, setIsComplete] = useState(false)
+  const [currentPoints, setCurrentPoints] = useState<Point[]>([])
+  const [completedPolygons, setCompletedPolygons] = useState<Point[][]>([])
   const [imageLoaded, setImageLoaded] = useState(false)
   const [canvasScale, setCanvasScale] = useState({ x: 1, y: 1 })
 
@@ -37,46 +37,61 @@ export default function PolygonDrawer({ imageUrl, onPolygonComplete }: PolygonDr
     // Draw image
     ctx.drawImage(image, 0, 0, canvas.width, canvas.height)
 
-    if (points.length > 0) {
-      // Draw polygon
+    // Draw completed polygons
+    completedPolygons.forEach((polygon: Point[], polygonIndex: number) => {
+      if (polygon.length > 0) {
+        ctx.strokeStyle = `hsl(${polygonIndex * 60}, 70%, 50%)`
+        ctx.fillStyle = `hsla(${polygonIndex * 60}, 70%, 50%, 0.2)`
+        ctx.lineWidth = 2
+        ctx.setLineDash([])
+
+        ctx.beginPath()
+        ctx.moveTo(polygon[0].x, polygon[0].y)
+
+        for (let i = 1; i < polygon.length; i++) {
+          ctx.lineTo(polygon[i].x, polygon[i].y)
+        }
+
+        if (polygon.length > 2) {
+          ctx.closePath()
+          ctx.fill()
+        }
+        ctx.stroke()
+
+        // Draw points
+        polygon.forEach((point: Point, index: number) => {
+          ctx.beginPath()
+          ctx.arc(point.x, point.y, 4, 0, 2 * Math.PI)
+          ctx.fillStyle = index === 0 ? "#ef4444" : `hsl(${polygonIndex * 60}, 70%, 50%)`
+          ctx.fill()
+        })
+      }
+    })
+
+    // Draw current polygon being drawn
+    if (currentPoints.length > 0) {
       ctx.strokeStyle = "#3b82f6"
       ctx.lineWidth = 2
-      ctx.setLineDash([])
+      ctx.setLineDash([5, 5])
 
       ctx.beginPath()
-      ctx.moveTo(points[0].x, points[0].y)
+      ctx.moveTo(currentPoints[0].x, currentPoints[0].y)
 
-      for (let i = 1; i < points.length; i++) {
-        const cp1x = points[i - 1].x + (points[i].x - points[i - 1].x) * 0.3
-        const cp1y = points[i - 1].y + (points[i].y - points[i - 1].y) * 0.3
-        const cp2x = points[i].x - (points[i].x - points[i - 1].x) * 0.3
-        const cp2y = points[i].y - (points[i].y - points[i - 1].y) * 0.3
-
-        ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, points[i].x, points[i].y)
-      }
-
-      if (isComplete && points.length > 2) {
-        const cp1x = points[points.length - 1].x + (points[0].x - points[points.length - 1].x) * 0.3
-        const cp1y = points[points.length - 1].y + (points[0].y - points[points.length - 1].y) * 0.3
-        const cp2x = points[0].x - (points[0].x - points[points.length - 1].x) * 0.3
-        const cp2y = points[0].y - (points[0].y - points[points.length - 1].y) * 0.3
-
-        ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, points[0].x, points[0].y)
-        ctx.fillStyle = "rgba(59, 130, 246, 0.2)"
-        ctx.fill()
+      for (let i = 1; i < currentPoints.length; i++) {
+        ctx.lineTo(currentPoints[i].x, currentPoints[i].y)
       }
 
       ctx.stroke()
 
-      // Draw points
-      points.forEach((point, index) => {
+      // Draw current points
+      currentPoints.forEach((point: Point, index: number) => {
         ctx.beginPath()
         ctx.arc(point.x, point.y, 4, 0, 2 * Math.PI)
         ctx.fillStyle = index === 0 ? "#ef4444" : "#3b82f6"
         ctx.fill()
       })
     }
-  }, [points, isComplete, imageLoaded])
+  }, [currentPoints, completedPolygons, imageLoaded])
 
   useEffect(() => {
     drawCanvas()
@@ -84,8 +99,6 @@ export default function PolygonDrawer({ imageUrl, onPolygonComplete }: PolygonDr
 
   const handleCanvasClick = useCallback(
     (e: React.MouseEvent<HTMLCanvasElement>) => {
-      if (isComplete) return
-
       const canvas = canvasRef.current
       if (!canvas) return
 
@@ -98,19 +111,27 @@ export default function PolygonDrawer({ imageUrl, onPolygonComplete }: PolygonDr
       const x = (e.clientX - rect.left) * scaleX
       const y = (e.clientY - rect.top) * scaleY
 
-      setPoints((prev) => [...prev, { x, y }])
+      setCurrentPoints((prev: Point[]) => [...prev, { x, y }])
     },
-    [isComplete],
+    [],
   )
+
+  const completeCurrentPolygon = () => {
+    if (currentPoints.length >= 3) {
+      const newPolygons = [...completedPolygons, currentPoints]
+      setCompletedPolygons(newPolygons)
+      setCurrentPoints([])
+      onPolygonComplete(newPolygons)
+    }
+  }
 
   const handleKeyPress = useCallback(
     (e: KeyboardEvent) => {
-      if (e.key === "Enter" && points.length >= 3 && !isComplete) {
-        setIsComplete(true)
-        onPolygonComplete(points)
+      if (e.key === "Enter" && currentPoints.length >= 3) {
+        completeCurrentPolygon()
       }
     },
-    [points, isComplete, onPolygonComplete],
+    [currentPoints],
   )
 
   useEffect(() => {
@@ -136,9 +157,14 @@ export default function PolygonDrawer({ imageUrl, onPolygonComplete }: PolygonDr
     }
   }
 
-  const resetPolygon = () => {
-    setPoints([])
-    setIsComplete(false)
+  const resetAllPolygons = () => {
+    setCurrentPoints([])
+    setCompletedPolygons([])
+    onPolygonComplete([])
+  }
+
+  const undoLastPoint = () => {
+    setCurrentPoints((prev: Point[]) => prev.slice(0, -1))
   }
 
   return (
@@ -161,20 +187,54 @@ export default function PolygonDrawer({ imageUrl, onPolygonComplete }: PolygonDr
         </div>
       </div>
 
-      <div className="flex gap-4 items-center">
-        <p className="text-sm text-gray-600">Click to add points. Press Enter to complete the polygon.</p>
-        {points.length > 0 && (
-          <Button onClick={resetPolygon} variant="outline" size="sm">
-            Reset
-          </Button>
-        )}
+      <div className="flex gap-4 items-center justify-between">
+        <p className="text-sm text-gray-600">
+          클릭으로 점 추가 → Enter로 다각형 완성 → 여러 다각형 그리기 가능
+        </p>
+        <div className="flex gap-2">
+          {currentPoints.length > 0 && (
+            <>
+              <Button onClick={undoLastPoint} variant="outline" size="sm">
+                마지막 점 삭제
+              </Button>
+              {currentPoints.length >= 3 && (
+                <Button onClick={completeCurrentPolygon} variant="default" size="sm">
+                  다각형 완성
+                </Button>
+              )}
+            </>
+          )}
+          {(currentPoints.length > 0 || completedPolygons.length > 0) && (
+            <Button onClick={resetAllPolygons} variant="outline" size="sm">
+              전체 초기화
+            </Button>
+          )}
+        </div>
       </div>
 
-      {isComplete && (
-        <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-          <p className="text-sm text-green-700">Polygon completed with {points.length} points!</p>
-        </div>
-      )}
+      <div className="space-y-2">
+        {completedPolygons.length > 0 && (
+          <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+            <p className="text-sm text-green-700">
+              완성된 다각형: {completedPolygons.length}개
+            </p>
+            {completedPolygons.map((polygon, index) => (
+              <p key={index} className="text-xs text-green-600">
+                다각형 {index + 1}: {polygon.length}개 점
+              </p>
+            ))}
+          </div>
+        )}
+        
+        {currentPoints.length > 0 && (
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <p className="text-sm text-blue-700">
+              현재 그리는 중: {currentPoints.length}개 점 
+              {currentPoints.length >= 3 && " (Enter로 완성 가능)"}
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
