@@ -9,9 +9,17 @@ interface FileUploadProps {
   onFileSelect: (file: File) => void
   accept?: string
   maxSize?: number
+  buttonText?: string
+  description?: string
 }
 
-export default function FileUpload({ onFileSelect, accept = "image/*", maxSize = 10 * 1024 * 1024 }: FileUploadProps) {
+export default function FileUpload({
+  onFileSelect,
+  accept = "image/*",
+  maxSize = 10 * 1024 * 1024,
+  buttonText = "파일 선택",
+  description = "파일을 업로드하세요.",
+}: FileUploadProps) {
   const [isDragOver, setIsDragOver] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -36,8 +44,8 @@ export default function FileUpload({ onFileSelect, accept = "image/*", maxSize =
 
       if (!file) return
 
-      if (!file.type.startsWith("image/")) {
-        setError("Please upload an image file")
+      if (accept && accept !== "*/*" && !file.name.endsWith(accept.replace(".", ""))) {
+        setError(`지원되지 않는 파일 형식입니다 (${accept})`)
         return
       }
 
@@ -81,10 +89,23 @@ export default function FileUpload({ onFileSelect, accept = "image/*", maxSize =
         />
 
         <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-        <p className="text-lg font-medium text-gray-900 mb-2">Drop your image here, or click to browse</p>
-        <p className="text-sm text-gray-500">Supports PNG, JPG, GIF up to {Math.round(maxSize / (1024 * 1024))}MB</p>
+        <p className="text-lg font-medium text-gray-900 mb-2">{description}</p>
+        <p className="text-sm text-gray-500">
+          {accept === ".pkg"
+            ? ".pkg 파일만 업로드 가능"
+            : `지원되는 형식: ${accept}, 최대 ${Math.round(maxSize / (1024 * 1024))}MB`}
+        </p>
+        <label htmlFor="upload-button">
+          <span
+            className="mt-4 inline-block cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition"
+            tabIndex={0}
+          >
+            {buttonText}
+          </span>
+        </label>
+        {/* hidden file input (accessibility) */}
+        {/* 실제 input은 이미 위에 있음, label+span은 스타일용 */}
       </div>
-
       {error && (
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
           <div className="flex items-center">
